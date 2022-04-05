@@ -1,9 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:todo_app/modules/archived_tasks_screen.dart';
-import 'package:todo_app/modules/done_tasks_screen.dart';
-import 'package:todo_app/modules/new_tasks_screen.dart';
+import 'package:todo_app/modules/screens_imports.dart';
 import 'package:todo_app/shared/cubit/states.dart';
 
 class AppCubit extends Cubit<AppStates> {
@@ -14,9 +13,9 @@ class AppCubit extends Cubit<AppStates> {
   int currentIndex = 0;
   List<String> title = ['Tasks', 'Done', 'Archived'];
   List<Widget> screens = [
-    NewTasksScreen(),
-    DoneTasksScreen(),
-    ArchivedTasksScreen(),
+    const NewTasksScreen(),
+    const DoneTasksScreen(),
+    const ArchivedTasksScreen(),
   ];
 
   void changeIndex(int index) {
@@ -27,26 +26,34 @@ class AppCubit extends Cubit<AppStates> {
   List<Map> newTasks = [];
   List<Map> doneTasks = [];
   List<Map> archivedTasks = [];
-  Database database;
+  late Database database;
 
   createDatabase() {
     openDatabase(
       'todo.db',
       version: 1,
       onCreate: (db, version) {
-        print('database created');
+        if (kDebugMode) {
+          print('database created');
+        }
         db
             .execute(
                 'CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT, data TEXT, time TEXT, statues TEXT)')
             .then((value) {
-          print('table created');
+          if (kDebugMode) {
+            print('table created');
+          }
         }).catchError((onError) {
-          print('Error catch : $onError');
+          if (kDebugMode) {
+            print('Error catch : $onError');
+          }
         });
       },
       onOpen: (database) {
         getData(database);
-        print('database opened');
+        if (kDebugMode) {
+          print('database opened');
+        }
       },
     ).then((value) {
       database = value;
@@ -54,24 +61,27 @@ class AppCubit extends Cubit<AppStates> {
     });
   }
 
-  insertData({
-    @required String title,
-    @required String time,
-    @required String date,
+ void insertData({
+    required String title,
+    required String time,
+    required String date,
   }) async {
     await database.transaction((txn) {
-      txn
+     return txn
           .rawInsert(
               'INSERT INTO tasks (title, data, time, statues) VALUES("$title", "$date", "$time", "new")')
           .then((value) {
-        print('$value inserted successfully ');
+        if (kDebugMode) {
+          print('$value inserted successfully ');
+        }
         emit(AppInsertDataBaseState());
 
         getData(database);
       }).catchError((onError) {
-        print('Error : $onError');
+        if (kDebugMode) {
+          print('Error : $onError');
+        }
       });
-      return null;
     });
   }
 
@@ -84,25 +94,26 @@ class AppCubit extends Cubit<AppStates> {
 
     database.rawQuery('SELECT * FROM tasks').then((value) {
       value.forEach((element) {
-        if (element['statues'] == 'new')
+        if (element['statues'] == 'new') {
           newTasks.add(element);
-        else if (element['statues'] == 'done')
+        } else if (element['statues'] == 'done') {
           doneTasks.add(element);
-        else
+        } else {
           archivedTasks.add(element);
+        }
       });
       emit(AppGetDataBaseState());
     });
   }
 
   void updateData({
-    @required String statues,
-    @required int id,
+    required String statues,
+    required int id,
   }) async {
     // Update some record
     database.rawUpdate(
       'UPDATE tasks SET statues = ? WHERE id = ?',
-      ['$statues', id],
+      [statues, id],
     ).then((value) {
       getData(database);
       emit(AppUpdateDataBaseState());
@@ -110,7 +121,7 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   void deleteData({
-    @required int id,
+    required int id,
   }) async {
     // Update some record
     database.rawDelete('DELETE FROM tasks WHERE id = ?', [id]).then((value) {
@@ -123,8 +134,8 @@ class AppCubit extends Cubit<AppStates> {
   IconData fabIcon = Icons.add;
 
   void changeBottomSheetState({
-    @required bool isShow,
-    @required IconData icon,
+    required bool isShow,
+    required IconData icon,
   }) {
     isBottomSheetDown = isShow;
     fabIcon = icon;
